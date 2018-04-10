@@ -54,7 +54,7 @@ public class LexWSBBSLDA extends BSLDA
 		if (wsbm!=null) wsbm.param.printParam("\t");
 	}
 	
-	public void initialize()
+	public void initialize() throws IOException
 	{
 		super.initialize();
 		if (wsbm!=null) wsbm.init();

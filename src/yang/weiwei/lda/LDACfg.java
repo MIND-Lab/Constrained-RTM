@@ -19,6 +19,8 @@ public final class LDACfg
 	public static String sldaTestCorpusFileName=sldaDataPath+"corpus-test";
 	public static String sldaTrainLabelFileName=sldaDataPath+"labels-train";
 	public static String sldaTestLabelFileName=sldaDataPath+"labels-test";
+	public static String sldaTrainConstraintsFileName=sldaDataPath+"constraints-train";
+	public static String sldaTestConstraintsFileName=sldaDataPath+"constraints-test";
 	
 	public static String rtmDataPath=dataPath+"rtm"+File.separator;
 	public static String rtmVocabFileName=rtmDataPath+"vocab";

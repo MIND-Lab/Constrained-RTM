@@ -48,7 +48,7 @@ public class WSBTM extends LDA
 		if (wsbm!=null) wsbm.param.printParam("\t");
 	}
 	
-	public void initialize()
+	public void initialize() throws IOException
 	{
 		super.initialize();
 		if (wsbm!=null) wsbm.init();

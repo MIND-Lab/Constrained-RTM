@@ -5,129 +5,133 @@ import java.io.IOException;
 import yang.weiwei.lda.rtm.RTM;
 import yang.weiwei.lda.LDAParam;
 
-public class ToolRTM extends ToolLDA
-{
-	protected double nu=1.0;
-	protected boolean directed=false;
-	protected int PLRInterval=20;
-	protected boolean negEdge=false;
-	protected double negEdgeRatio=1.0;
-	
-	protected String rtmTrainGraphFileName="";
-	protected String rtmTestGraphFileName="";
-	protected String predFileName="";
-	protected String regFileName="";
-	
-	public void parseCommand(String[] args)
-	{
+public class ToolRTM extends ToolLDA {
+	protected double nu = 1.0;
+	protected boolean directed = false;
+	protected int PLRInterval = 20;
+	protected boolean negEdge = false;
+	protected double negEdgeRatio = 1.0;
+
+	protected String rtmTrainGraphFileName = "";
+	protected String rtmTestGraphFileName = "";
+	protected String predFileName = "";
+	protected String regFileName = "";
+
+	public void parseCommand(String[] args) {
 		super.parseCommand(args);
-		
-		nu=getArg("--nu", args, 1.0);
-		directed=findArg("--directed", args, false);
-		PLRInterval=getArg("--plr-int", args, 20);
-		negEdge=findArg("--neg", args, false);
-		negEdgeRatio=getArg("--neg-ratio", args, 1.0);
-		
-		rtmTrainGraphFileName=getArg("--rtm-train-graph", args);
-		rtmTestGraphFileName=getArg("--rtm-test-graph", args);
-		predFileName=getArg("--pred", args);
-		regFileName=getArg("--reg", args);
+
+		nu = getArg("--nu", args, 1.0);
+		directed = findArg("--directed", args, false);
+		PLRInterval = getArg("--plr-int", args, 20);
+		negEdge = findArg("--neg", args, false);
+		negEdgeRatio = getArg("--neg-ratio", args, 1.0);
+
+		rtmTrainGraphFileName = getArg("--rtm-train-graph", args);
+		rtmTestGraphFileName = getArg("--rtm-test-graph", args);
+		predFileName = getArg("--pred", args);
+		regFileName = getArg("--reg", args);
+
 	}
-	
-	protected boolean checkCommand()
-	{
-		if (!super.checkCommand()) return false;
-		
-		if (rtmTrainGraphFileName.length()==0 && !test)
-		{
+
+	protected boolean checkCommand() {
+		if (!super.checkCommand())
+			return false;
+
+		if (rtmTrainGraphFileName.length() == 0 && !test) {
 			println("RTM train graph file is not specified.");
 			return false;
 		}
-		
-		if (!test && rtmTestGraphFileName.length()==0)
-		{
-			rtmTestGraphFileName=rtmTrainGraphFileName;
+
+		if (!test && rtmTestGraphFileName.length() == 0) {
+			rtmTestGraphFileName = rtmTrainGraphFileName;
 		}
-		
-		if (rtmTestGraphFileName.length()==0 && test)
-		{
+
+		if (rtmTestGraphFileName.length() == 0 && test) {
 			println("RTM test graph is not specified.");
 			return false;
 		}
-		
-		if (nu<=0.0)
-		{
+
+		if (nu <= 0.0) {
 			println("Parameter nu must be a positive real number.");
 			return false;
 		}
-		
-		if (PLRInterval<=0)
-		{
+
+		if (PLRInterval <= 0) {
 			println("Interval of computing PLR must be a positive integer.");
 			return false;
 		}
-		
-		if (negEdge && negEdgeRatio<0.0)
-		{
+
+		if (negEdge && negEdgeRatio < 0.0) {
 			println("Negative edge ratio must be a non-negative real number.");
 			return false;
 		}
-		
+
 		return true;
 	}
-	
-	protected LDAParam createParam() throws IOException
-	{
-		LDAParam param=super.createParam();
-		param.nu=nu;
-		param.directed=directed;
-		param.showPLRInterval=PLRInterval;
-		param.negEdge=negEdge;
-		param.negEdgeRatio=negEdgeRatio;
+
+	protected LDAParam createParam() throws IOException {
+		LDAParam param = super.createParam();
+		param.nu = nu;
+		param.directed = directed;
+		param.showPLRInterval = PLRInterval;
+		param.negEdge = negEdge;
+		param.negEdgeRatio = negEdgeRatio;
 		return param;
 	}
-	
-	public void execute() throws IOException
-	{
-		if (!checkCommand())
-		{
+
+	public void execute() throws IOException {
+
+		if (!checkCommand()) {
 			printHelp();
 			return;
 		}
-		
-		LDAParam param=createParam();
-		RTM lda=null;
-		if (!test)
-		{
-			lda=new RTM(param);
+		LDAParam param = createParam();
+		RTM lda = null;
+		if (!test) {
+			lda = new RTM(param);
 			lda.readCorpus(corpusFileName);
 			lda.readGraph(rtmTrainGraphFileName, RTM.TRAIN_GRAPH);
-			lda.readGraph(rtmTestGraphFileName, RTM.TEST_GRAPH);
+			// lda.readGraph(rtmTestGraphFileName, RTM.TEST_GRAPH);
+			if (param.constrained)
+				lda.readConstraints(trainConstraintsFileName);
+
 			lda.initialize();
-			lda.sample(numIters);
+			if (burnin > 0)
+				lda.sample(numIters, burnin);
+			else
+				lda.sample(numIters);
 			lda.writeModel(modelFileName);
-		}
-		else
-		{
-			lda=new RTM(modelFileName, param);
+		} else {
+			lda = new RTM(modelFileName, param);
 			lda.readCorpus(corpusFileName);
-			if (rtmTrainGraphFileName.length()>0) lda.readGraph(rtmTrainGraphFileName, RTM.TRAIN_GRAPH);
+			if (rtmTrainGraphFileName.length() > 0)
+				lda.readGraph(rtmTrainGraphFileName, RTM.TRAIN_GRAPH);
 			lda.readGraph(rtmTestGraphFileName, RTM.TEST_GRAPH);
+			if (param.constrained) {
+				if (trainConstraintsFileName.length() > 0)
+					lda.readConstraints(trainConstraintsFileName);
+				lda.readConstraints(testConstraintsFileName);
+			}
 			lda.initialize();
-			lda.sample(numIters);
+			if (burnin > 0)
+				lda.sample(numIters, burnin);
+			else
+				lda.sample(numIters);
 		}
 		writeFiles(lda);
 	}
-	
-	protected void writeFiles(RTM lda) throws IOException
-	{
+
+	protected void writeFiles(RTM lda) throws IOException {
 		super.writeFiles(lda);
-		if (predFileName.length()>0) lda.writePred(predFileName);
-		if (regFileName.length()>0) lda.writeRegValues(regFileName);
+
+		if (predFileName.length() > 0)
+			lda.writePred(predFileName);
+		if (regFileName.length() > 0)
+			lda.writeRegValues(regFileName);
+
 	}
-	
-	public void printHelp()
-	{
+
+	public void printHelp() {
 		super.printHelp();
 		println("RTM arguments:");
 		println("\t--rtm-train-graph [optional in test]: Link file for RTM to train.");

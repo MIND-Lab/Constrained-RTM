@@ -36,6 +36,9 @@ public class ToolLDAInterface2 extends ToolInterface
 	private int updateAlphaInterval=10;
 	private int numIters=100;
 	
+	//constrained
+	private boolean constrained=false;
+	
 	//hinge loss parameter
 	private double c=1.0;
 	
@@ -102,6 +105,8 @@ public class ToolLDAInterface2 extends ToolInterface
 		updateAlpha=findArg("--update", args, false);
 		updateAlphaInterval=getArg("--update-int", args, 10);
 		numIters=getArg("--iters", args, 100);
+		
+		constrained=findArg("--constrained", args, false);
 		
 		c=getArg("-c", args, 1.0);
 		nu=getArg("--nu", args, 1.0);
@@ -217,6 +222,7 @@ public class ToolLDAInterface2 extends ToolInterface
 		param.verbose=verbose;
 		param.updateAlpha=updateAlpha;
 		param.updateAlphaInterval=updateAlphaInterval;
+		param.constrained=constrained;
 		param.c=c;
 		param.nu=nu;
 		param.showPLRInterval=PLRInterval;

@@ -57,7 +57,7 @@ public class LexWSBRTM extends RTM
 		if (wsbm!=null) wsbm.param.printParam("\t");
 	}
 	
-	public void initialize()
+	public void initialize() throws IOException
 	{
 		super.initialize();
 		if (wsbm!=null) wsbm.init();

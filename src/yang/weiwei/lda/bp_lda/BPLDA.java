@@ -57,7 +57,7 @@ public class BPLDA extends LDA
 		IOUtil.println("\t#blocks: "+numBlocks);
 	}
 	
-	public void initialize()
+	public void initialize() throws IOException
 	{
 		super.initialize();
 		initBlocks();
@@ -87,7 +87,7 @@ public class BPLDA extends LDA
 		}
 	}
 	
-	public void sample(int numIters)
+	public void sample(int numIters) throws IOException
 	{
 		computeLogLikelihood();
 		perplexity=Math.exp(-logLikelihood/numTestWords);

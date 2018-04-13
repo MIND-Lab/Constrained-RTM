@@ -8,7 +8,7 @@ C-RTM models the structure of a document network and incorporates other types of
 java -cp YWWTools.jar:deps.jar yang.weiwei.Tools --tool lda --model lda --constrained true --vocab <vocab-file> --corpus <corpus-file> --trained-model <model-file>
 ```
 - Required arguments
-	- `<constrained>` `true`: it must be set to true to allow the incorporation of prior knowledge constraints.
+	- `--constrained true`: it must be set to true to allow the incorporation of prior knowledge constraints.
 	- `<vocab-file>`: Vocabulary file. Each line contains a unique word.
 	- `<corpus-file>`: Corpus file in which documents are represented by word indexes and frequencies. Each line contains a document in the following format
 
@@ -27,10 +27,11 @@ java -cp YWWTools.jar:deps.jar yang.weiwei.Tools --tool lda --model lda --constr
     `<document-1>` is row-id of document-1. `<document-2>` is row-id of document-2. `<constraint-type>` must be set to `M` (if it is a must-constraint) or `C` (if it is a cannot-constraint).
 - Optional arguments
 	- `--model <model-name>`: The topic model you want to use (default: [LDA](#lda_cmd)). Tested `<model-name>` (case unsensitive) are
-		- [LDA](#lda_cmd): Constrained LDA
-		- [RTM](#rtm_cmd): Constrained Relational topic model.
+		- LDA: Constrained LDA
+		- RTM: Constrained Relational topic model.
     - other models as extensions of LDA implemented by Weiwei Yang can be used and are already provided in the code.
-  - `--newfun <newfun>`: Type of potential function of C-LDA. If true, it is normalized (as defined in ...).
+    - `--newfun <boolean>`: Type of potential function of the constrained model. Default: `false`. If true, it is normalized. Otherwise it corresponds to the potential function described in [SC-LDA](#sclda).
+    - `--lambda <lambda>`: Strength parameter for the potential function described in [SC-LDA](#sclda). It is valid only if `--newfun false`.
 	- `--no-verbose`: Stop printing log to console.
 	- `--alpha <alpha-value>`: Parameter of Dirichlet prior of document distribution over topics (default: 1.0). Must be a positive real number.
 	- `--beta <beta-value>`: Parameter of Dirichlet prior of topic distribution over words (default: 0.1). Must be a positive real number.
@@ -43,5 +44,14 @@ java -cp YWWTools.jar:deps.jar yang.weiwei.Tools --tool lda --model lda --constr
 	- `--topic-count <topic-count-file>`: File for document-topic counts.
 	- `--top-word <num-top-word>`: Number of words to give when showing topics (default: 10). Must be a positive integer.
   - `--burn-in <burnin>`: Number of burn-in iterations. Default: 0.
+
+## <h2 id="datasets">Dasets</h2>
+Three benchmark relational [datasets](http://www.cs.umd.edu/~sen/lbc-proj/LBC.html) are included in their related folders. They are already preprocessed and ready to be used as input for the model. 
+Notice that the file `labels.txt` can be used to create the must- and cannot-constraints. Two random documents can be extracted and if their labels are the same, a must-constraint may be added to the `<constraint-file>`, otherwise a cannot-constraint may be added.
+
+
+### <h3 id="sclda">[SC-LDA](#sclda): Sparse Constrained LDA
+
+Yang, Y., Downey, D., Boyd-Graber, J.: Efficient Methods for Incorporating Knowledge into Topic Models. In: Proceedings of the 2015 Conference on Empirical Methods in Natural Language Processing (EMNLP). pp. 308-317 (2015)
 
 [Back to Top](#top)

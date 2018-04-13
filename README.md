@@ -27,8 +27,8 @@ java -cp YWWTools.jar:deps.jar yang.weiwei.Tools --tool lda --model lda --constr
     `<document-1>` is row-id of document-1. `<document-2>` is row-id of document-2. `<constraint-type>` must be set to `M` (if it is a must-constraint) or `C` (if it is a cannot-constraint).
 - Optional arguments
 	- `--model <model-name>`: The topic model you want to use (default: [LDA](#lda_cmd)). Tested `<model-name>` (case unsensitive) are
-		- LDA: Constrained LDA
-		- RTM: Constrained Relational topic model.
+		- [LDA](#lda_ref): Constrained LDA
+		- [RTM](#rtm_ref): Constrained Relational topic model.
     - other models as extensions of LDA implemented by Weiwei Yang can be used and are already provided in the code.
     - `--newfun <boolean>`: Type of potential function of the constrained model. Default: `false`. If true, it is normalized. Otherwise it corresponds to the potential function described in [SC-LDA](#sclda).
     - `--lambda <lambda>`: Strength parameter for the potential function described in [SC-LDA](#sclda). It is valid only if `--newfun false`.
@@ -45,13 +45,37 @@ java -cp YWWTools.jar:deps.jar yang.weiwei.Tools --tool lda --model lda --constr
 	- `--top-word <num-top-word>`: Number of words to give when showing topics (default: 10). Must be a positive integer.
   - `--burn-in <burnin>`: Number of burn-in iterations. Default: 0.
 
+## <h3 id="rtm_cmd">Relational Topic Models</h2>
+In addition to the above parameters, if `<model-name>` is set to `rtm`, then it requires the following
+- Semi-optional arguments
+	- `--rtm-train-graph <rtm-train-graph-file>` [optional in test]: Link file for RTM to train. Each line contains an edge in the format `node-1 \t node-2 \t weight`. Node number starts from 0. `weight` must be a non-negative integer. `weight` is either 0 or 1 and is optional. Its default value is 1 if not specified.
+	- `--rtm-test-graph <rtm-test-graph-file>` [optional in training]: Link file for RTM to evaluate. Can be the same with RTM train graph. Format is the same as `<rtm-train-graph-file>`.
+- Optional arguments
+	- `--nu <nu-value>`: Variance of normal priors for weight vectors/matrices in RTM and its extensions (default: 1.0). Must be a positive real number.
+	- `--plr-int <compute-PLR-interval>`: Interval of computing predictive link rank (default: 20). Must be a positive integer.
+	- `--neg`: Sample negative links (default: false).
+	- `--neg-ratio <neg-ratio>`: The ratio of number of negative links to number of positive links (default 1.0). Must be a positive real number.
+	- `--pred <pred-file>`: Predicted document link probability matrix file.
+	- `--reg <reg-file>`: Doc-doc regression value file.
+	- `--directed`: Set all edges directed (default: false).
+
+
 ## <h2 id="datasets">Dasets</h2>
 Three benchmark relational [datasets](http://www.cs.umd.edu/~sen/lbc-proj/LBC.html) are included in their related folders. They are already preprocessed and ready to be used as input for the model. 
 Notice that the file `labels.txt` can be used to create the must- and cannot-constraints. Two random documents can be extracted and if their labels are the same, a must-constraint may be added to the `<constraint-file>`, otherwise a cannot-constraint may be added.
 
 
-### <h3 id="sclda">[SC-LDA](#sclda): Sparse Constrained LDA
 
-Yang, Y., Downey, D., Boyd-Graber, J.: Efficient Methods for Incorporating Knowledge into Topic Models. In: Proceedings of the 2015 Conference on Empirical Methods in Natural Language Processing (EMNLP). pp. 308-317 (2015)
+### <h3 id="lda_ref">LDA: Latent Dirichlet Allocation</h3>
+
+David M. Blei, Andrew Y. Ng, and Michael I. Jordan. 2003. Latent Dirichlet allocation. Journal of Machine Learning Research.
+
+### <h3 id="sclda"> SC-LDA: Sparse Constrained LDA </h3>
+
+Yang Y., Downey D., Boyd-Graber J.: Efficient Methods for Incorporating Knowledge into Topic Models. In: Proceedings of the 2015 Conference on Empirical Methods in Natural Language Processing (EMNLP). pp. 308-317 (2015)
+
+### <h3 id="rtm_ref">RTM: Relational Topic Model</h3>
+
+Jonathan Chang and David M. Blei. 2010. Hierarchical relational models for document networks. The Annals of Applied Statistics.
 
 [Back to Top](#top)

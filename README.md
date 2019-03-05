@@ -1,7 +1,8 @@
-# <h1 id="top">Constrained Relational Topic Models</h1>
+# <h1 id="top">Entity Constrained Relational Topic Models</h1>
 
-This is an extension of Relational Topic Models, called Constrained Relational Topic Models (C-RTM). It extends the code from the package of ([Weiwei Yang](http://cs.umd.edu/~wwyang/)'s). 
-C-RTM models the structure of a document network and incorporates other types of relational information obtained by prior domain knowledge.
+This tool includes two extensions of two well-known topic models: Latent Dirichlet Allocation (LDA) and Relational Topic Models. It extends the code from the package of ([Weiwei Yang](http://cs.umd.edu/~wwyang/)'s). 
+
+The model is able to incorporate relationships as constraints between  concepts  (identified  in  the  form  of named-entities)  and  words. In the RTM counterpart, it also models the structure of a document network.
 
 ## <h2 id="clda">Execution of the program in Command Line</h2>
 ```
@@ -11,24 +12,27 @@ java -cp YWWTools.jar:deps.jar yang.weiwei.Tools --tool lda --model lda --constr
 	- `--constrained true`: it must be set to true to allow the incorporation of prior knowledge constraints.
 	- `<vocab-file>`: Vocabulary file. Each line contains a unique word.
 	- `<corpus-file>`: Corpus file in which documents are represented by word indexes and frequencies. Each line contains a document in the following format
-
+	
 		```
 		<doc-len> <word-type-1>:<frequency-1> <word-type-2>:<frequency-2> ... <word-type-n>:<frequency-n>
 		```
 	
-		`<doc-len>` is the total number of *tokens* in this document. `<word-type-i>` denotes the i-th word in `<vocab-file>`, starting from 0. Words with zero frequency can be omitted.
+`<doc-len>` is the total number of *tokens* in this document. `<word-type-i>` denotes the i-th word in `<vocab-file>`, starting from 0. Words with zero frequency can be omitted.
 	- `<model-file>`: Trained model file in JSON format. Read and written by program. 
-  - `--train-c-file <constraint-file>`: File containing the document constraints. Each line contains a constraint in the following format
+  - `"--train-v-file" <constraint-file>`: File containing the entity/word constraints. Each line contains a constraint in the following format
   
-    ```
-    <constraint-type> <document-1> <document-2>
-    ```
-    
+   ```
+    <constraint-type> <word/entity-1>	<word/entity-2>
+   ```
+
     `<document-1>` is row-id of document-1. `<document-2>` is row-id of document-2. `<constraint-type>` must be set to `M` (if it is a must-constraint) or `C` (if it is a cannot-constraint).
+     
 - Optional arguments
-	- `--model <model-name>`: The topic model you want to use (default: [LDA](#lda_cmd)). Tested `<model-name>` (case unsensitive) are
-		- [LDA](#lda_ref): Constrained LDA
-		- [RTM](#rtm_ref): Constrained Relational topic model.
+	`"--test-v-file" <constraint-file>`: File for the testing containing the entity/word constraints.
+	- `--model <model-name>`: The topic model you want to use (default: LDA). Tested `<model-name>` (case unsensitive) are
+		- [LDA](#lda_ref): Entity Constrained LDA
+		- [RTM](#rtm_ref): Entity Constrained Relational topic model.
+		
     - other models as extensions of LDA implemented by Weiwei Yang can be used and are already provided in the code.
     - `--newfun <boolean>`: Type of potential function of the constrained model. Default: `false`. If true, it is normalized. Otherwise it corresponds to the potential function described in [SC-LDA](#sclda).
     - `--lambda <lambda>`: Strength parameter for the potential function described in [SC-LDA](#sclda). It is valid only if `--newfun false`.
@@ -61,8 +65,9 @@ In addition to the above parameters, if `<model-name>` is set to `rtm`, then it 
 
 
 ## <h2 id="datasets">Dasets</h2>
-Three benchmark relational [datasets](http://www.cs.umd.edu/~sen/lbc-proj/LBC.html) are included in their related folders. They are already preprocessed and ready to be used as input for the model. 
-Notice that the file `labels.txt` can be used to create the must- and cannot-constraints. Two random documents can be extracted and if their labels are the same, a must-constraint may be added to the `<constraint-file>`, otherwise a cannot-constraint may be added.
+Three benchmark relational datasets are included in their related folders: Cora, WebKB and CiteSeer-M10. They are already preprocessed and ready to be used as input for the model. There are two versions of each dataset: the "processed" datasets are entity-annotated datasets, i.e. words have been associated with their respective named-entity and replaced by "ENTITY/name_of_the_entity".
+
+Notice that the file `labels.txt` can be used to create the must- and cannot-constraints between documents. Two random documents can be extracted and if their labels are the same, a must-constraint may be added to the `<constraint-file>`, otherwise a cannot-constraint may be added.
 
 
 

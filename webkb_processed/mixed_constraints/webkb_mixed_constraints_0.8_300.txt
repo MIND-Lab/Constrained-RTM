@@ -1,0 +1,7 @@
+M	ENTITY/ACM_SIGOPS	ENTITY/Symposium_on_Operating_Systems_Principles
+M	ENTITY/Algorithm	algorithms
+M	ENTITY/China	china
+M	ENTITY/Compiler	compiler
+M	ENTITY/File_Transfer_Protocol	ftp
+M	ENTITY/Linux_kernel	linux
+M	ENTITY/Web_browser	browser

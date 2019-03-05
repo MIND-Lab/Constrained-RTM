@@ -1,0 +1,4 @@
+M	ENTITY/DNA	ENTITY/RNA
+M	ENTITY/Evolutionary_computation	ENTITY/Evolutionary_algorithm
+M	ENTITY/Stochastic_volatility	ENTITY/Valuation_of_options
+M	ENTITY/Quantum_field_theory	ENTITY/Conformal_field_theory

@@ -1,0 +1,16 @@
+M	gene	ENTITY/Gene
+M	protein	ENTITY/Protein
+M	algorithms	ENTITY/Algorithm
+M	genome	ENTITY/Genome
+M	bioinformatics	ENTITY/Bioinformatics
+M	ENTITY/Microarray	microarray
+M	ENTITY/Gene	genes
+M	genomic	ENTITY/Genome
+M	proteins	ENTITY/Protein
+M	algorithm	ENTITY/Algorithm
+M	microarray	ENTITY/DNA_microarray
+M	quantum	ENTITY/Quantum_mechanics
+M	ENTITY/Stochastic_volatility	ENTITY/Valuation_of_options
+M	magnetic	ENTITY/Magnetic_field
+M	ENTITY/Methane	methane
+M	ENTITY/Diesel_engine	diesel

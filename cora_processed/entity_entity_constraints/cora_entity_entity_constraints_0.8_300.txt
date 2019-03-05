@@ -1,0 +1,7 @@
+M	ENTITY/Supervised_learning	ENTITY/Unsupervised_learning
+M	ENTITY/Feedforward_neural_network	ENTITY/Multilayer_perceptron
+M	ENTITY/Boosting_(machine_learning)	ENTITY/Ensemble_learning
+M	ENTITY/Sample_complexity	ENTITY/Generalization_error
+M	ENTITY/Minimum_description_length	ENTITY/Minimum_message_length
+M	ENTITY/C4.5_algorithm	ENTITY/Ensemble_learning
+M	ENTITY/Exon	ENTITY/Intron

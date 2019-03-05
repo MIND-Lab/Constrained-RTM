@@ -1,0 +1,3 @@
+M	ENTITY/ACM_SIGOPS	ENTITY/Symposium_on_Operating_Systems_Principles
+M	ENTITY/Instruction_pipelining	ENTITY/Superscalar_processor
+M	ENTITY/SIGMOD	ENTITY/VLDB

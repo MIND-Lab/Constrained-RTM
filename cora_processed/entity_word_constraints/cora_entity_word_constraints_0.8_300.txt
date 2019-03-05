@@ -1,0 +1,5 @@
+M	ENTITY/Protein	protein
+M	ENTITY/Protein	proteins
+M	algorithms	ENTITY/Algorithm
+M	ENTITY/Robotics	robotics
+M	ENTITY/Algorithm	algorithm

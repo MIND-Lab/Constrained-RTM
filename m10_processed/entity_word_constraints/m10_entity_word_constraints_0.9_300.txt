@@ -1,0 +1,4 @@
+M	gene	ENTITY/Gene
+M	protein	ENTITY/Protein
+M	genome	ENTITY/Genome
+M	algorithm	ENTITY/Algorithm

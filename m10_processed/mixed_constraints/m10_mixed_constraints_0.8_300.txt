@@ -1,0 +1,8 @@
+M	gene	ENTITY/Gene
+M	protein	ENTITY/Protein
+M	algorithms	ENTITY/Algorithm
+M	genome	ENTITY/Genome
+M	bioinformatics	ENTITY/Bioinformatics
+M	proteins	ENTITY/Protein
+M	algorithm	ENTITY/Algorithm
+M	ENTITY/Methane	methane

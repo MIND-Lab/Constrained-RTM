@@ -1,0 +1,2 @@
+M	ENTITY/Protein	protein
+M	ENTITY/Algorithm	algorithm

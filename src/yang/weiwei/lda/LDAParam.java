@@ -9,9 +9,8 @@ import java.util.HashMap;
 import yang.weiwei.util.IOUtil;
 import yang.weiwei.util.format.Fourmat;
 
-public class LDAParam
-{
-	//for topic model
+public class LDAParam {
+	// for topic model
 	/** Parameter of document-topic distribution's Dirichlet prior (default: 1.0) */
 	public double alpha = 1.0;
 	/** parameter of block-topic distribution's Dirichlet prior (default: 0.1) */
@@ -77,6 +76,7 @@ public class LDAParam
 	public int lambda = 1;
 	/** Set the use of the newly defined function or not (default: false) */
 	public boolean newfun = false;
+	public boolean word_norm_fun = false;
 
 	public int numTopWords = 10;
 
@@ -93,6 +93,7 @@ public class LDAParam
 			IOUtil.println(prefix + "update alpha interval: " + updateAlphaInterval);
 		IOUtil.println(prefix + "constrained: " + constrained);
 		IOUtil.println(prefix + "newfun: " + newfun);
+		IOUtil.println(prefix + "word_norm_fun: " + word_norm_fun);
 		IOUtil.println(prefix + "lambda: " + lambda);
 		IOUtil.println(prefix + "metrics: " + metricsFileName);
 

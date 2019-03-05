@@ -9,18 +9,18 @@ import java.util.Set;
  *
  */
 public class LDADoc
-{	
+{
 	private int tokens[];
 	private int topicAssigns[];
 	private HashMap<Integer, Integer> wordCount;
-	
+
 	private int topicCounts[];
-	
+
 	public LDADoc(int numTopics, int numVocab)
 	{
 		this("", numTopics, numVocab);
 	}
-	
+
 	/**
 	 * Initialize the object with a document
 	 * @param document Document
@@ -31,7 +31,7 @@ public class LDADoc
 	{
 		wordCount=new HashMap<Integer, Integer>();
 		topicCounts=new int[numTopics];
-		
+
 		String seg[]=document.split(" "),segseg[];
 		int len=Integer.valueOf(seg[0]);
 		tokens=new int[len];
@@ -44,13 +44,13 @@ public class LDADoc
 			int word=Integer.valueOf(segseg[0]);
 			int count=Integer.valueOf(segseg[1]);
 			assert(word>=0 && word<numVocab);
-			
+
 			if (!wordCount.containsKey(word))
 			{
 				wordCount.put(word, 0);
 			}
 			wordCount.put(word, wordCount.get(word)+count);
-				
+
 			for (int j=0; j<count; j++)
 			{
 				tokens[tempLen+j]=word;
@@ -59,11 +59,11 @@ public class LDADoc
 			tempLen+=count;
 		}
 	}
-	
+
 	public LDADoc(String document, int numTopics, HashMap<String, Integer> vocabMap)
 	{
 		topicCounts=new int[numTopics];
-		
+
 		String seg[]=document.split(" ");
 		int len=0;
 		for (int i=0; i<seg.length; i++)
@@ -77,19 +77,19 @@ public class LDADoc
 		{
 			if (seg[i].length()==0) continue;
 			int word=vocabMap.get(seg[i]);
-			
+
 			if (!wordCount.containsKey(word))
 			{
 				wordCount.put(word, 0);
 			}
 			wordCount.put(word, wordCount.get(word)+1);
-			
+
 			tokens[tempLen]=word;
 			topicAssigns[tempLen]=-1;
 			tempLen++;
 		}
 	}
-	
+
 	/**
 	 * Get document's number of tokens
 	 * @return Number of tokens
@@ -98,7 +98,7 @@ public class LDADoc
 	{
 		return tokens.length;
 	}
-	
+
 	/**
 	 * Get a token's topic assignment
 	 * @param pos Token position
@@ -108,7 +108,7 @@ public class LDADoc
 	{
 		return topicAssigns[pos];
 	}
-	
+
 	/**
 	 * Assign a topic to a token
 	 * @param pos Token position
@@ -123,7 +123,7 @@ public class LDADoc
 			topicCounts[topic]++;
 		}
 	}
-	
+
 	/**
 	 * Unassign a token's topic
 	 * @param pos Token position
@@ -137,7 +137,7 @@ public class LDADoc
 			topicCounts[oldTopic]--;
 		}
 	}
-	
+
 	/**
 	 * Get a token
 	 * @param pos Token position
@@ -147,7 +147,7 @@ public class LDADoc
 	{
 		return tokens[pos];
 	}
-	
+
 	/**
 	 * Get the number of tokens assigned to a topic
 	 * @param topic Topic number
@@ -157,7 +157,7 @@ public class LDADoc
 	{
 		return topicCounts[topic];
 	}
-	
+
 	/**
 	 * Get the set of unique words in this document
 	 * @return Set of unique words
@@ -166,7 +166,7 @@ public class LDADoc
 	{
 		return wordCount.keySet();
 	}
-	
+
 	/**
 	 * Get the frequency of a given word
 	 * @param word Word
@@ -176,7 +176,7 @@ public class LDADoc
 	{
 		return (wordCount.containsKey(word)? wordCount.get(word) : 0);
 	}
-	
+
 	/**
 	 * Check whether this document contains a given word
 	 * @param word Word
@@ -186,4 +186,10 @@ public class LDADoc
 	{
 		return wordCount.containsKey(word);
 	}
+
+	public double getnHashtags() {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
 }

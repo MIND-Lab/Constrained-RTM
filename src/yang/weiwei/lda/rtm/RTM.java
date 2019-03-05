@@ -2,6 +2,7 @@ package yang.weiwei.lda.rtm;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -14,14 +15,15 @@ import yang.weiwei.util.MathUtil;
 import yang.weiwei.lda.LDA;
 import yang.weiwei.lda.LDACfg;
 import yang.weiwei.lda.LDAParam;
+import yang.weiwei.lda.util.LDATopic;
 import yang.weiwei.util.IOUtil;
 import cc.mallet.optimize.LimitedMemoryBFGS;
 import com.google.gson.annotations.Expose;
 
 /**
  * Relational topic model
+ * 
  * @author Weiwei Yang
- * @author Silvia Terragni
  *
  */
 public class RTM extends LDA {
@@ -35,12 +37,20 @@ public class RTM extends LDA {
 	protected int numTrainEdges;
 
 	protected ArrayList<HashMap<Integer, Integer>> testEdgeWeights;
+
+	protected ArrayList<Integer[]> testEdgesLists;
+
 	protected int numTestEdges;
 
 	protected double weight[];
 
 	protected double error;
 	protected double PLR;
+	protected double[] HITS;
+	protected double[] NDCG;
+
+	protected int atK = 10;
+
 	protected double avgWeight;
 
 	@Override
@@ -67,21 +77,24 @@ public class RTM extends LDA {
 	/**
 	 * Read document links
 	 * 
-	 * @param graphFileName
-	 *            Graph file name
-	 * @param graphType
-	 *            Graph type
-	 * @throws IOException
-	 *             IOException
+	 * @param graphFileName Graph file name
+	 * @param graphType     Graph type
+	 * @throws IOException IOException
 	 */
 	public void readGraph(String graphFileName, int graphType) throws IOException {
+		System.out.println(graphFileName);
+		System.out.println(graphType);
+
 		BufferedReader br = new BufferedReader(new FileReader(graphFileName));
 		String line, seg[];
 		int u, v, w;
 		while ((line = br.readLine()) != null) {
 			seg = line.split("\t");
-			u = Integer.valueOf(seg[0]);
-			v = Integer.valueOf(seg[1]);
+
+			/* the order is from right to left */
+			v = Integer.valueOf(seg[0]);
+			u = Integer.valueOf(seg[1]);
+
 			w = (seg.length >= 3 ? Integer.valueOf(seg[2]) : 1);
 			if (corpus.get(u).docLength() == 0 || corpus.get(v).docLength() == 0)
 				continue;
@@ -105,6 +118,25 @@ public class RTM extends LDA {
 		}
 		if (graphType == TRAIN_GRAPH && param.negEdge) {
 			sampleNegEdge();
+		}
+		br.close();
+	}
+
+	public void readEdgeLists(String graphFileName) throws NumberFormatException, IOException {
+		System.out.println(graphFileName);
+		BufferedReader br = new BufferedReader(new FileReader(graphFileName));
+
+		String line;
+		String[] seg;
+		Integer[] nodesList;
+		while ((line = br.readLine()) != null) {
+			seg = line.split("\t");
+
+			nodesList = new Integer[seg.length];
+
+			for (int i = 0; i < seg.length; i++)
+				nodesList[i] = Integer.valueOf(seg[i]);
+			testEdgesLists.add(nodesList);
 		}
 		br.close();
 	}
@@ -143,38 +175,46 @@ public class RTM extends LDA {
 			bw.write("logLikelihood;perplexity");
 			bw.newLine();
 			for (int iteration = 1; iteration <= numIters; iteration++) {
+				// long startTime = System.nanoTime();
 				for (int doc = 0; doc < numDocs; doc++) {
 					weight = new double[trainEdgeWeights.get(doc).size()];
 					sampleDoc(doc);
+					// System.out.print(doc + " ");
+
 				}
+				for (int i = 0; i < param.numTopics; i++) {
+					LDATopic t = topics[i];
+					// System.out.println(t.getTotalTokens());
+				}
+				// long endTime = System.nanoTime();
+				// System.out.println("sample docs" + (endTime-startTime));
 				computeLogLikelihood();
 				perplexity = Math.exp(-logLikelihood / numTestWords);
 				if (type == TRAIN) {
 					optimize();
 				}
-				if (param.verbose && iteration % 50 == 0) {
+
+				if (param.verbose && iteration % 100 == 0) {
 					IOUtil.println("<" + iteration + ">" + "\tLog-LLD: " + format(logLikelihood) + "\tPPX: "
 							+ format(perplexity));
 				}
-				if (param.verbose && numTestEdges > 0) {
-					computeAvgWeight();
-					IOUtil.print("\tAvg Weight: " + format(avgWeight));
-				}
-				if (param.verbose && numTestEdges > 0) {
-					computeError();
-					IOUtil.print("\tError: " + format(error));
-				}
-				if (iteration % param.showPLRInterval == 0 || iteration == numIters)
-					computePLR();
-				if (param.verbose && numTestEdges > 0) {
-					IOUtil.print("\tPLR: " + format(PLR));
-				}
+				/*
+				 * if (param.verbose && numTestEdges > 0) { computeAvgWeight();
+				 * IOUtil.print("\tAvg Weight: " + format(avgWeight) + "\n"); }
+				 * 
+				 * if (param.verbose && numTestEdges > 0) { computeError();
+				 * IOUtil.print("\tError: " + format(error)); }
+				 * 
+				 * if (iteration % param.showPLRInterval == 0 || iteration == numIters)
+				 * computeLinkPrediction(); if (param.verbose && numTestEdges > 0) {
+				 * IOUtil.print("\tPLR: " + format(PLR)); }
+				 */
+
 				if (param.verbose)
-					IOUtil.println();
-				if (param.updateAlpha && iteration % param.updateAlphaInterval == 0 && type == TRAIN) {
-					updateHyperParam();
-				}
-				
+					// IOUtil.println();
+					if (param.updateAlpha && iteration % param.updateAlphaInterval == 0 && type == TRAIN) {
+						updateHyperParam();
+					}
 				if (burnin > 0)
 					burnin--;
 				else {
@@ -183,7 +223,13 @@ public class RTM extends LDA {
 				}
 			}
 			bw.close();
-			computeTopicCoherence();
+
+			if (type != TRAIN)
+				computeLinkPrediction();
+
+			System.out.println("********************computo phi********************");
+
+			computePhi();
 			printMetrics();
 		} else {
 			for (int iteration = 1; iteration <= numIters; iteration++) {
@@ -197,33 +243,35 @@ public class RTM extends LDA {
 				if (type == TRAIN) {
 					optimize();
 				}
-				if (param.verbose && iteration % 50 == 0) {
+				if (param.verbose && iteration % 500 == 0) {
 					IOUtil.println("<" + iteration + ">" + "\tLog-LLD: " + format(logLikelihood) + "\tPPX: "
 							+ format(perplexity));
 				}
-				if (param.verbose && numTestEdges > 0) {
-					computeAvgWeight();
-					IOUtil.print("\tAvg Weight: " + format(avgWeight));
-				}
-				if (param.verbose && numTestEdges > 0) {
-					computeError();
-					IOUtil.print("\tError: " + format(error));
-				}
-				if (iteration % param.showPLRInterval == 0 || iteration == numIters)
-					computePLR();
-				if (param.verbose && numTestEdges > 0) {
-					IOUtil.print("\tPLR: " + format(PLR));
-				}
-				if (param.verbose)
-					IOUtil.println();
+				/*
+				 * if (param.verbose && numTestEdges > 0) { computeAvgWeight();
+				 * IOUtil.print("\tAvg Weight: " + format(avgWeight) + "\n"); } if
+				 * (param.verbose && numTestEdges > 0) { computeError();
+				 * IOUtil.print("\tError: " + format(error)); }
+				 * 
+				 * if (iteration % param.showPLRInterval == 0 || iteration == numIters)
+				 * computeLinkPrediction(); if (param.verbose && numTestEdges > 0) {
+				 * IOUtil.print("\tPLR: " + format(PLR)); }
+				 */
+				// if (param.verbose)
+				// IOUtil.println();
 				if (param.updateAlpha && iteration % param.updateAlphaInterval == 0 && type == TRAIN) {
 					updateHyperParam();
 				}
+
 				if (burnin > 0)
 					burnin--;
 			}
 
-			computeTopicCoherence();
+			if (type != TRAIN)
+				computeLinkPrediction();
+
+			System.out.println("********************computo phi********************");
+			computePhi();
 			printMetrics();
 		}
 		if (type == TRAIN) {
@@ -296,6 +344,7 @@ public class RTM extends LDA {
 	}
 
 	protected void optimize() {
+		// long startTime = System.nanoTime();
 		RTMFunction optimizable = new RTMFunction(this);
 		LimitedMemoryBFGS lbfgs = new LimitedMemoryBFGS(optimizable);
 		try {
@@ -306,6 +355,9 @@ public class RTM extends LDA {
 		for (int topic = 0; topic < param.numTopics; topic++) {
 			eta[topic] = optimizable.getParameter(topic);
 		}
+		// long endTime = System.nanoTime();
+		// String diff = millisToShortDHMS(endTime - startTime);
+		// System.out.println("ottimizzazione: " + (endTime - startTime));
 	}
 
 	protected double computeWeight(int doc1, int doc2) {
@@ -333,7 +385,57 @@ public class RTM extends LDA {
 		error /= (double) numTestEdges;
 	}
 
-	protected void computePLR() {
+	protected void computeLinkPrediction() {
+		computePLR();
+		HITS = new double[atK];
+		NDCG = new double[atK];
+
+		double[][] ndcg_temp = new double[testEdgesLists.size()][atK];
+		double[][] hits_temp = new double[testEdgesLists.size()][atK];
+
+		for (int j = 0; j < testEdgesLists.size(); j++) {
+			Integer[] edge = testEdgesLists.get(j);
+			int u = edge[0];
+			int v = edge[1];
+
+			ArrayList<RTMDocProb> docProbs = new ArrayList<RTMDocProb>();
+
+			for (int i : edge) {
+				if (u == i)
+					continue;
+				docProbs.add(new RTMDocProb(i, computeEdgeProb(u, i)));
+			}
+			// sort probabilities
+			Collections.sort(docProbs);
+			// compute metrics at k
+			for (int k = 1; k < atK+1; k++) {
+
+				hits_temp[j][k-1] = 0.0;
+				ndcg_temp[j][k-1] = 0.0;
+
+				for (int l = 0; l < k; l++) {
+					int item = docProbs.get(l).getDocNo();
+					if (item == v) {
+						// if v is in the k-list return 1
+						hits_temp[j][k-1] = 1.0;
+						ndcg_temp[j][k-1] = Math.log(2.0) / Math.log((double) l + 2.0);
+					}
+				}
+			}
+		}
+
+		for (int k = 1; k < atK+1; k++) {
+			for (int j = 0; j < testEdgesLists.size(); j++) {
+
+				HITS[k - 1] += hits_temp[j][k - 1];
+				NDCG[k - 1] += ndcg_temp[j][k - 1];
+			}
+			HITS[k-1] = HITS[k-1] / testEdgesLists.size();
+			NDCG[k-1] = NDCG[k-1] / testEdgesLists.size();
+		}
+	}
+
+	private void computePLR() {
 		PLR = 0.0;
 		if (numTestEdges == 0)
 			return;
@@ -372,10 +474,8 @@ public class RTM extends LDA {
 	/**
 	 * Write predictive link rank to file
 	 * 
-	 * @param plrFileName
-	 *            PLR file name
-	 * @throws IOException
-	 *             IOException
+	 * @param plrFileName PLR file name
+	 * @throws IOException IOException
 	 */
 	public void writePLR(String plrFileName) throws IOException {
 		BufferedWriter bw = new BufferedWriter(new FileWriter(plrFileName));
@@ -403,10 +503,8 @@ public class RTM extends LDA {
 	/**
 	 * Write predicted document link probabilities to file
 	 * 
-	 * @param predFileName
-	 *            Prediction file name
-	 * @throws IOException
-	 *             IOException
+	 * @param predFileName Prediction file name
+	 * @throws IOException IOException
 	 */
 	public void writePred(String predFileName) throws IOException {
 		BufferedWriter bw = new BufferedWriter(new FileWriter(predFileName));
@@ -423,10 +521,8 @@ public class RTM extends LDA {
 	/**
 	 * Write regression values to file
 	 * 
-	 * @param regFileName
-	 *            Regression value file name
-	 * @throws IOException
-	 *             IOException
+	 * @param regFileName Regression value file name
+	 * @throws IOException IOException
 	 */
 	public void writeRegValues(String regFileName) throws IOException {
 		BufferedWriter bw = new BufferedWriter(new FileWriter(regFileName));
@@ -437,6 +533,15 @@ public class RTM extends LDA {
 			}
 			bw.newLine();
 		}
+		bw.close();
+	}
+
+	public void writePlrValues(String plrFileName) throws IOException {
+		String folders = new File(plrFileName).getParent();
+		if (!new File(folders).exists())
+			new File(folders).mkdirs();
+		BufferedWriter bw = new BufferedWriter(new FileWriter(plrFileName, true));
+		bw.write(getPLR() + "\n");
 		bw.close();
 	}
 
@@ -468,8 +573,7 @@ public class RTM extends LDA {
 	/**
 	 * Get the weight of a topic
 	 * 
-	 * @param topic
-	 *            Topic
+	 * @param topic Topic
 	 * @return The weight of given topic
 	 */
 	public double getTopicWeight(int topic) {
@@ -497,6 +601,7 @@ public class RTM extends LDA {
 		super.initVariables();
 		trainEdgeWeights = new ArrayList<HashMap<Integer, Integer>>();
 		testEdgeWeights = new ArrayList<HashMap<Integer, Integer>>();
+		testEdgesLists = new ArrayList<Integer[]>();
 		eta = new double[param.numTopics];
 		// optimize();
 	}
@@ -509,8 +614,7 @@ public class RTM extends LDA {
 	/**
 	 * Initialize an RTM object for training
 	 * 
-	 * @param parameters
-	 *            Parameters
+	 * @param parameters Parameters
 	 */
 	public RTM(LDAParam parameters) {
 		super(parameters);
@@ -519,10 +623,8 @@ public class RTM extends LDA {
 	/**
 	 * Initialize an RTM object for test using a pre-trained RTM object
 	 * 
-	 * @param RTMTrain
-	 *            Pre-trained RTM object
-	 * @param parameters
-	 *            Parameters
+	 * @param RTMTrain   Pre-trained RTM object
+	 * @param parameters Parameters
 	 */
 	public RTM(RTM RTMTrain, LDAParam parameters) {
 		super(RTMTrain, parameters);
@@ -531,12 +633,9 @@ public class RTM extends LDA {
 	/**
 	 * Initialize an RTM object for test using a pre-trained RTM model in file
 	 * 
-	 * @param modelFileName
-	 *            Model file name
-	 * @param parameters
-	 *            Parameters
-	 * @throws IOException
-	 *             IOException
+	 * @param modelFileName Model file name
+	 * @param parameters    Parameters
+	 * @throws IOException IOException
 	 */
 	public RTM(String modelFileName, LDAParam parameters) throws IOException {
 		super(modelFileName, parameters);
@@ -560,5 +659,35 @@ public class RTM extends LDA {
 		RTMTest.initialize();
 		RTMTest.sample(LDACfg.numTestIters);
 		// RTMTest.writePred(LDACfg.rtmPredLinkFileName);
+	}
+
+	public void writeHitsValues(String hitsFileName) throws IOException {
+		String folders = new File(hitsFileName).getParent();
+		if (!new File(folders).exists())
+			new File(folders).mkdirs();
+		BufferedWriter bw = new BufferedWriter(new FileWriter(hitsFileName, true));
+		for (int k = 0; k < atK; k++) {
+			if (k == atK - 1)
+				bw.write(HITS[k] + "\n");
+			else
+				bw.write(HITS[k] + ";");
+		}
+		bw.close();
+
+	}
+
+	public void writeNdcgValues(String ndcgFileName) throws IOException {
+		String folders = new File(ndcgFileName).getParent();
+		if (!new File(folders).exists())
+			new File(folders).mkdirs();
+		BufferedWriter bw = new BufferedWriter(new FileWriter(ndcgFileName, true));
+		for (int k = 0; k < atK; k++) {
+			if (k == atK - 1)
+				bw.write(NDCG[k] + "\n");
+			else
+				bw.write(NDCG[k] + ";");
+		}
+		bw.close();
+
 	}
 }

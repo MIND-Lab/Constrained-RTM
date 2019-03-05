@@ -28,6 +28,8 @@ public final class LDACfg
 	public static String rtmTestCorpusFileName=rtmDataPath+"corpus-test";
 	public static String rtmTrainLinkFileName=rtmDataPath+"links-train";
 	public static String rtmTestLinkFileName=rtmDataPath+"links-test";
+	public static String rtmTrainLinkFileName2=rtmDataPath+"links-train";
+	public static String rtmTestLinkFileName2=rtmDataPath+"links-test";
 	public static String rtmTrainClusterFileName=rtmDataPath+"clusters-train";
 	
 	public static String stldaDataPath=dataPath+"st-lda"+File.separator;

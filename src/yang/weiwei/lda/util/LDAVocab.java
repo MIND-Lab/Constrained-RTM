@@ -10,8 +10,9 @@ import java.util.HashMap;
 
 public class LDAVocab
 {
-	private static ArrayList<String> id2vocab;
-	private static HashMap<String, Integer> vocab2id;
+	protected static ArrayList<String> id2vocab;
+	protected static HashMap<String, Integer> vocab2id;
+	
 	
 	static
 	{

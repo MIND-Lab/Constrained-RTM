@@ -8,6 +8,7 @@ import yang.weiwei.tools.lda.ToolSTLDA;
 import yang.weiwei.tools.lda.ToolBPLDA;
 import yang.weiwei.tools.lda.ToolWSBTM;
 import yang.weiwei.tools.lda.ToolRTM;
+import yang.weiwei.tools.lda.ToolRTM2Level;
 import yang.weiwei.tools.lda.ToolLexWSBRTM;
 import yang.weiwei.tools.lda.ToolLexWSBMedRTM;
 import yang.weiwei.tools.lda.ToolSLDA;
@@ -63,6 +64,7 @@ public class ToolLDAInterface extends ToolInterface
 		case "bp-lda": toolLDA=new ToolBPLDA(); break;
 		case "st-lda": toolLDA=new ToolSTLDA(); break;
 		case "rtm": toolLDA=new ToolRTM(); break;
+		case "rtmlvl" :toolLDA=new ToolRTM2Level(); break;
 		case "lex-wsb-rtm": toolLDA=new ToolLexWSBRTM(); break;
 		case "lex-wsb-med-rtm": toolLDA=new ToolLexWSBMedRTM(); break;
 		case "slda": toolLDA=new ToolSLDA(); break;
@@ -102,6 +104,7 @@ public class ToolLDAInterface extends ToolInterface
 		ldaNames.add("st-lda");
 		ldaNames.add("wsb-tm");
 		ldaNames.add("rtm");
+		ldaNames.add("rtmlvl");
 		ldaNames.add("lex-wsb-rtm");
 		ldaNames.add("lex-wsb-med-rtm");
 		ldaNames.add("slda");

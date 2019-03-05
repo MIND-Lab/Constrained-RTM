@@ -3,10 +3,14 @@ package yang.weiwei.lda;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+
+import javax.swing.plaf.synth.SynthSeparatorUI;
 
 import cc.mallet.util.Randoms;
 import yang.weiwei.lda.util.CLDADoc;
@@ -23,8 +27,8 @@ import com.google.gson.annotations.Expose;
 
 /**
  * Latent Dirichlet Allocation
+ *
  * @author Yang Weiwei
- * @author Silvia Terragni
  *
  */
 public class LDA {
@@ -37,8 +41,8 @@ public class LDA {
 	protected static Randoms randoms;
 	protected static Gson gson;
 
-	@Expose protected double alpha[];
-	
+	@Expose
+	protected double alpha[];
 	protected double updateDenom;
 
 	protected int numDocs;
@@ -48,31 +52,34 @@ public class LDA {
 
 	protected ArrayList<LDADoc> corpus;
 	protected LDATopic topics[];
+	protected ArrayList<LDAWord> vocabulary;
 
 	protected double theta[][];
-	@Expose protected double phi[][];
+	@Expose
+	protected double phi[][];
 
 	protected double logLikelihood;
 	protected double perplexity;
 
-	//topic coherence
-	protected int[][][] topicCodocumentFrequencyMatrix;
-	protected int[][] topicDocumentFrequencyMatrix;
-	protected double[] topicCoherence;
+	protected double epsilon = 1.0;
 
 	/**
 	 * Read corpus
-	 * 
-	 * @param corpusFileName
-	 *            Corpus file name
-	 * @throws IOException
-	 *             IOException
+	 *
+	 * @param corpusFileName Corpus file name
+	 * @throws IOException IOException
 	 */
 	public void readCorpus(String corpusFileName) throws IOException {
 		readCorpus(corpusFileName, true);
+
 	}
 
 	public void readCorpus(String corpusFileName, boolean indexed) throws IOException {
+		vocabulary = new ArrayList<LDAWord>();
+		for (String s : param.vocabList) {
+			vocabulary.add(new LDAWord(s));
+		}
+
 		BufferedReader br = new BufferedReader(new FileReader(corpusFileName));
 		String line;
 		while ((line = br.readLine()) != null) {
@@ -93,8 +100,7 @@ public class LDA {
 		numDocs = corpus.size();
 	}
 
-	public void readConstraints(String constraintsFileName) throws IOException {
-		//constraint file must have a constraint per row in the form "constraint_type doc1 doc2"
+	public void readDocConstraints(String constraintsFileName) throws IOException {
 		BufferedReader br = new BufferedReader(new FileReader(constraintsFileName));
 		String line;
 		while ((line = br.readLine()) != null) {
@@ -120,6 +126,41 @@ public class LDA {
 
 	}
 
+	public void readVocabConstraints(String constraintsFileName) throws IOException {
+		System.out.println("READ VOCAB CONSTRAINTS");
+		if (!new File(constraintsFileName).exists()) {
+			new File(constraintsFileName).createNewFile();
+			System.out.println("creato file constraints vuoto: " + constraintsFileName);
+		}
+		BufferedReader br = new BufferedReader(new FileReader(constraintsFileName));
+		String line;
+		while ((line = br.readLine()) != null) {
+			String[] splittedLine = line.split("\\t");
+			String constraintType = splittedLine[0];
+			// String word1 = splittedLine[1];
+			// String word2 = splittedLine[2];
+
+			int wordIndex1 = param.vocabMap.get(splittedLine[1]);
+			int wordIndex2 = param.vocabMap.get(splittedLine[2]);
+
+			switch (constraintType) {
+			case "M":
+				System.out.println(splittedLine[1] + " " + splittedLine[2]);
+				vocabulary.get(wordIndex1).addMustlink(wordIndex2);
+				vocabulary.get(wordIndex2).addMustlink(wordIndex1);
+				break;
+			case "C":
+				vocabulary.get(wordIndex1).addCannotlink(wordIndex2);
+				vocabulary.get(wordIndex2).addCannotlink(wordIndex1);
+				break;
+			default:
+				// discard line
+			}
+		}
+		br.close();
+
+	}
+
 	protected void printParam() {
 		IOUtil.print("Running " + this.getClass().getSimpleName());
 		if (type == TRAIN) {
@@ -133,14 +174,13 @@ public class LDA {
 
 	/**
 	 * Initialize LDA member variables
-	 * 
+	 *
 	 * @throws IOException
 	 */
 	public void initialize() throws IOException {
 		initDocVariables();
 		initTopicAssigns();
 		printParam();
-		//write metric files 
 		if (param.metricsFileName.length() > 0) {
 			BufferedWriter bw = new BufferedWriter(new FileWriter(param.metricsFileName));
 			bw.write("logLikelihood;perplexity");
@@ -160,16 +200,24 @@ public class LDA {
 				topics[topic].addVocab(word);
 			}
 		}
+
+		for (int j = 0; j < param.vocabList.size(); j++) {
+			int count = 0;
+			for (int i = 0; i < param.numTopics; i++) {
+				count = count + topics[i].getVocabCount(j);
+			}
+			vocabulary.get(j).setCount(count);
+			// System.out.println("count vocab j= " + j + " word= " + param.vocabList.get(j)
+			// + " " + vocabulary.get(j).getCount());
+		}
 	}
 
 	/**
 	 * Initialize LDA member variables with user-provided topic assignments (may be
 	 * unstable)
-	 * 
-	 * @param topicAssignFileName
-	 *            Topic assignment file name
-	 * @throws IOException
-	 *             IOException
+	 *
+	 * @param topicAssignFileName Topic assignment file name
+	 * @throws IOException IOException
 	 */
 	public void initialize(String topicAssignFileName) throws IOException {
 		initDocVariables();
@@ -208,6 +256,7 @@ public class LDA {
 		}
 		theta = new double[numDocs][param.numTopics];
 		getNumTestWords();
+
 	}
 
 	protected void printMetrics() {
@@ -220,26 +269,26 @@ public class LDA {
 		IOUtil.println("Log Likelihood: " + format(logLikelihood));
 		IOUtil.println("Perplexity: " + format(perplexity));
 		IOUtil.print("Topic Coherence: ");
-		for (int i = 0; i < param.numTopics; i++)
-			IOUtil.print(" t" + i + ":" + topicCoherence[i]);
 	}
 
 	/**
 	 * Sample for given number of iterations
-	 * 
-	 * @param numIters
-	 *            Number of iterations
-	 * @throws IOException 
+	 *
+	 * @param numIters Number of iterations
+	 * @throws IOException
 	 */
 	public void sample(int numIters) throws IOException {
-		sample(numIters,0);
+		sample(numIters, 0);
 	}
 
 	public void sample(int numIters, int burnin) throws IOException {
 		for (int iteration = 1; iteration <= numIters; iteration++) {
+			// long startTime = System.currentTimeMillis();
 			for (int doc = 0; doc < numDocs; doc++) {
 				sampleDoc(doc);
 			}
+			// long endTime = System.currentTimeMillis();
+			// System.out.println("docs: "+ (endTime - startTime));
 			computeLogLikelihood();
 			perplexity = Math.exp(-logLikelihood / numTestWords);
 			if (burnin > 0)
@@ -248,21 +297,25 @@ public class LDA {
 				if (param.metricsFileName.length() > 0)
 					writeMetrics(param.metricsFileName);
 			}
-			if (param.verbose) {
+
+			if (param.verbose && iteration % 100 == 0) {
 				IOUtil.println(
 						"<" + iteration + ">" + "\tLog-LLD: " + format(logLikelihood) + "\tPPX: " + format(perplexity));
 			}
-			if (param.updateAlpha && iteration % param.updateAlphaInterval == 0 && type == TRAIN) {
-				updateHyperParam();
-			}
+			/*
+			 * if (param.updateAlpha && iteration % param.updateAlphaInterval == 0 && type
+			 * == TRAIN) { updateHyperParam(); }
+			 */
 		}
-		
+
 		if (type == TRAIN && param.verbose) {
+
 			for (int topic = 0; topic < param.numTopics; topic++) {
 				IOUtil.println(topWordsByFreq(topic, 10));
 			}
 		}
-		computeTopicCoherence();
+		System.out.println("computo phi");
+		computePhi();
 		printMetrics();
 	}
 
@@ -308,6 +361,7 @@ public class LDA {
 	}
 
 	protected double topicUpdating(int doc, int topic, int vocab) {
+
 		double score = 0.0;
 		if (type == TRAIN) {
 			score = Math.log((alpha[topic] + corpus.get(doc).getTopicCount(topic))
@@ -316,11 +370,54 @@ public class LDA {
 		} else {
 			score = Math.log((alpha[topic] + corpus.get(doc).getTopicCount(topic)) * phi[topic][vocab]);
 		}
-		
+
 		if (param.constrained) {
-			score += computeLogPotential(doc, topic);
+			score += computeLogPotential(doc, topic, vocab);
 		}
 		return score;
+	}
+
+	protected double computeLogPotential(int doc, int topic, int vocab) {
+		double logPotential = 0;
+
+		if (!((CLDADoc) corpus.get(doc)).mustLink.isEmpty()) {
+			for (int d : ((CLDADoc) corpus.get(doc)).mustLink) {
+				double ndt = corpus.get(d).getTopicCount(topic);
+				double nd = corpus.get(d).docLength();
+				if (param.newfun)
+					logPotential += Math.log(epsilon + ndt / nd);
+				else
+					logPotential += Math.log(Math.max(param.lambda, corpus.get(d).getTopicCount(topic)));
+
+			}
+		}
+
+		if (!((CLDADoc) corpus.get(doc)).cannotLink.isEmpty()) {
+			for (int d : ((CLDADoc) corpus.get(doc)).cannotLink) {
+				double ndt = corpus.get(d).getTopicCount(topic);
+				double nd = corpus.get(d).docLength();
+				if (param.newfun)
+					logPotential -= Math.log(epsilon + ndt / nd);
+				else
+					logPotential -= Math.log(Math.max(param.lambda, corpus.get(d).getTopicCount(topic)));
+			}
+		}
+
+		// word correlation
+		for (int w : vocabulary.get(vocab).getMustlinks()) {
+			// lambda da cambiar
+			// System.out.println(w + " " + vocab);
+			if (param.word_norm_fun) {
+				double wCount = (double) vocabulary.get(w).getCount();
+				if (wCount > 0) {
+					logPotential += Math.log(param.lambda + (topics[topic].getVocabCount(w) / wCount));
+				}
+			} else
+				logPotential += Math.log(Math.max(param.lambda, topics[topic].getVocabCount(w)));
+
+		}
+
+		return logPotential;
 	}
 
 	protected double computeLogPotential(int doc, int topic) {
@@ -330,9 +427,10 @@ public class LDA {
 				double ndt = corpus.get(d).getTopicCount(topic);
 				double nd = corpus.get(d).docLength();
 				if (param.newfun)
-					logPotential += Math.log(1 + ndt / nd);
+					logPotential += Math.log(epsilon + ndt / nd);
 				else
 					logPotential += Math.log(Math.max(param.lambda, corpus.get(d).getTopicCount(topic)));
+
 			}
 		}
 
@@ -341,7 +439,7 @@ public class LDA {
 				double ndt = corpus.get(d).getTopicCount(topic);
 				double nd = corpus.get(d).docLength();
 				if (param.newfun)
-					logPotential -= Math.log(1 + ndt / nd);
+					logPotential -= Math.log(epsilon + ndt / nd);
 				else
 					logPotential -= Math.log(Math.max(param.lambda, corpus.get(d).getTopicCount(topic)));
 			}
@@ -350,7 +448,6 @@ public class LDA {
 	}
 
 	protected void updateHyperParam() {
-		// this function does not work well on C-LDA
 		double oldAlpha[] = new double[param.numTopics];
 		for (int topic = 0; topic < param.numTopics; topic++) {
 			oldAlpha[topic] = alpha[topic];
@@ -416,68 +513,6 @@ public class LDA {
 		}
 	}
 
-	public void computeTopicCoherence() {
-		computeCodocumentFrequencyMatrices();
-		for (int topic = 0; topic < param.numTopics; topic++) {
-			topicCoherence[topic] = 0.0;
-			int[][] matrix = topicCodocumentFrequencyMatrix[topic];
-
-			double topicScore = 0.0;
-			for (int row = 1; row < param.numTopWords; row++) {
-				for (int col = 0; col < row; col++) {
-					topicScore += Math.log((matrix[row][col] + 1.0) / (matrix[col][col]));
-				}
-			}
-			topicCoherence[topic] = topicScore;
-			// System.out.println(topicCoherence[topic]);
-
-		}
-	}
-
-	public void computeCodocumentFrequencyMatrices() {
-		// Reinitialize all the document and co-document frequency matrices.
-		for (int topic = 0; topic < param.numTopics; topic++) {
-			for (int i = 0; i < param.numTopWords; i++) {
-				for (int j = 0; j < param.numTopWords; j++) {
-					topicCodocumentFrequencyMatrix[topic][i][j] = 0;
-				}
-			}
-		}
-
-		//
-		for (int topic = 0; topic < param.numTopics; topic++) {
-
-			// get and sort the top-N words of a topic
-			LDAWord wordsTopic[] = new LDAWord[param.numVocab];
-			for (int vocab = 0; vocab < param.numVocab; vocab++) {
-				wordsTopic[vocab] = new LDAWord(param.vocabList.get(vocab), phi[topic][vocab]);
-			}
-
-			Arrays.sort(wordsTopic);
-
-			for (int i = 0; i < param.numTopWords; i++) {
-				String word1 = wordsTopic[i].getWord();
-
-				for (int j = i; j < param.numTopWords; j++) {
-					String word2 = wordsTopic[j].getWord();
-
-					for (LDADoc doc : corpus) {
-						// case diagonal
-						if (doc.containsWord(param.vocabList.indexOf(word1)) && i == j)
-							topicCodocumentFrequencyMatrix[topic][i][i]++;
-						// case i!=j
-						else if (i != j && doc.containsWord(param.vocabList.indexOf(word1))
-								&& doc.containsWord(param.vocabList.indexOf(word2))) {
-							topicCodocumentFrequencyMatrix[topic][i][j]++;
-							topicCodocumentFrequencyMatrix[topic][j][i]++;
-
-						}
-					}
-				}
-			}
-		}
-	}
-
 	protected void getNumTestWords() {
 		if (type == TRAIN) {
 			numTestWords = numWords;
@@ -503,7 +538,7 @@ public class LDA {
 
 	/**
 	 * Get document distribution over topics
-	 * 
+	 *
 	 * @return Document distribution over topics
 	 */
 	public double[][] getDocTopicDist() {
@@ -512,7 +547,7 @@ public class LDA {
 
 	/**
 	 * Get topic distribution over words
-	 * 
+	 *
 	 * @return Topic distribution over words
 	 */
 	public double[][] getTopicVocabDist() {
@@ -521,7 +556,7 @@ public class LDA {
 
 	/**
 	 * Get number of documents
-	 * 
+	 *
 	 * @return Number of documents
 	 */
 	public int getNumDocs() {
@@ -530,7 +565,7 @@ public class LDA {
 
 	/**
 	 * Get number of tokens in the corpus
-	 * 
+	 *
 	 * @return Number of tokens
 	 */
 	public int getNumWords() {
@@ -539,9 +574,8 @@ public class LDA {
 
 	/**
 	 * Get a specific document
-	 * 
-	 * @param doc
-	 *            Document number
+	 *
+	 * @param doc Document number
 	 * @return Corresponding document object
 	 */
 	public LDADoc getDoc(int doc) {
@@ -550,9 +584,8 @@ public class LDA {
 
 	/**
 	 * Get a specific topic
-	 * 
-	 * @param topic
-	 *            Topic number
+	 *
+	 * @param topic Topic number
 	 * @return Corresponding topic object
 	 */
 	public LDATopic getTopic(int topic) {
@@ -561,7 +594,7 @@ public class LDA {
 
 	/**
 	 * Get log likelihood
-	 * 
+	 *
 	 * @return Log likelihood
 	 */
 	public double getLogLikelihood() {
@@ -570,7 +603,7 @@ public class LDA {
 
 	/**
 	 * Get perplexity
-	 * 
+	 *
 	 * @return Perplexity
 	 */
 	public double getPerplexity() {
@@ -579,7 +612,7 @@ public class LDA {
 
 	/**
 	 * Get documents' number of tokens assigned to every topic
-	 * 
+	 *
 	 * @return Documents' number of tokens assigned to every topic
 	 */
 	public int[][] getDocTopicCounts() {
@@ -594,7 +627,7 @@ public class LDA {
 
 	/**
 	 * Get tokens' topic assignments
-	 * 
+	 *
 	 * @return Tokens' topic assignments
 	 */
 	public int[][] getTokenTopicAssign() {
@@ -610,11 +643,9 @@ public class LDA {
 
 	/**
 	 * Get a topic's top words (with highest number of assignments)
-	 * 
-	 * @param topic
-	 *            Topic number
-	 * @param numTopWords
-	 *            Number of top words
+	 *
+	 * @param topic       Topic number
+	 * @param numTopWords Number of top words
 	 * @return Given topic's top words
 	 */
 	public String topWordsByFreq(int topic, int numTopWords) {
@@ -633,11 +664,9 @@ public class LDA {
 
 	/**
 	 * Get a topic's top words (with highest weight)
-	 * 
-	 * @param topic
-	 *            Topic number
-	 * @param numTopWords
-	 *            Number of top words
+	 *
+	 * @param topic       Topic number
+	 * @param numTopWords Number of top words
 	 * @return Given topic's top words
 	 */
 	public String topWordsByWeight(int topic, int numTopWords) {
@@ -656,13 +685,10 @@ public class LDA {
 
 	/**
 	 * Write topics' top words to file
-	 * 
-	 * @param resultFileName
-	 *            Result file name
-	 * @param numTopWords
-	 *            Number of top words
-	 * @throws IOException
-	 *             IOException
+	 *
+	 * @param resultFileName Result file name
+	 * @param numTopWords    Number of top words
+	 * @throws IOException IOException
 	 */
 	public void writeResult(String resultFileName, int numTopWords) throws IOException {
 		BufferedWriter bw = new BufferedWriter(new FileWriter(resultFileName));
@@ -682,11 +708,9 @@ public class LDA {
 
 	/**
 	 * Write document distribution over topics to file
-	 * 
-	 * @param docTopicDistFileName
-	 *            Distribution file name
-	 * @throws IOException
-	 *             IOException
+	 *
+	 * @param docTopicDistFileName Distribution file name
+	 * @throws IOException IOException
 	 */
 	public void writeDocTopicDist(String docTopicDistFileName) throws IOException {
 		BufferedWriter bw = new BufferedWriter(new FileWriter(docTopicDistFileName));
@@ -694,13 +718,23 @@ public class LDA {
 		bw.close();
 	}
 
+	public void writeVocabTopicCounts(String vocabTopicCountsFileName) throws IOException {
+		BufferedWriter bw = new BufferedWriter(new FileWriter(vocabTopicCountsFileName));
+		int vocabTopicCounts[][] = new int[param.vocabList.size()][param.numTopics];
+		for (int i = 0; i < param.numTopics; i++) {
+			for (int j = 0; j < param.vocabList.size(); j++) {
+				vocabTopicCounts[j][i] = topics[i].getVocabCount(j);
+			}
+		}
+		IOUtil.writeMatrix(bw, vocabTopicCounts);
+		bw.close();
+	}
+
 	/**
 	 * Write documents' number of tokens assigned to topics to file
-	 * 
-	 * @param topicCountFileName
-	 *            Documents' topic count file name
-	 * @throws IOException
-	 *             IOException
+	 *
+	 * @param topicCountFileName Documents' topic count file name
+	 * @throws IOException IOException
 	 */
 	public void writeDocTopicCounts(String topicCountFileName) throws IOException {
 		BufferedWriter bw = new BufferedWriter(new FileWriter(topicCountFileName));
@@ -710,11 +744,9 @@ public class LDA {
 
 	/**
 	 * Write tokens' topic assignments to file
-	 * 
-	 * @param topicAssignFileName
-	 *            Topic assignment file name
-	 * @throws IOException
-	 *             IOException
+	 *
+	 * @param topicAssignFileName Topic assignment file name
+	 * @throws IOException IOException
 	 */
 	public void writeTokenTopicAssign(String topicAssignFileName) throws IOException {
 		BufferedWriter bw = new BufferedWriter(new FileWriter(topicAssignFileName));
@@ -724,16 +756,21 @@ public class LDA {
 
 	/**
 	 * Write model to file
-	 * 
-	 * @param modelFileName
-	 *            Model file name
-	 * @throws IOException
-	 *             IOException
+	 *
+	 * @param modelFileName Model file name
+	 * @throws IOException IOException
 	 */
 	public void writeModel(String modelFileName) throws IOException {
-		BufferedWriter bw = new BufferedWriter(new FileWriter(modelFileName));
-		bw.write(gson.toJson(this));
-		bw.close();
+		if (type == TRAIN) {
+			BufferedWriter bw = new BufferedWriter(new FileWriter(modelFileName));
+			bw.write(gson.toJson(this));
+			bw.close();
+		} else {
+			BufferedWriter bw = new BufferedWriter(new FileWriter(modelFileName));
+			bw.write(gson.toJson(getTopicVocabDist()));
+			bw.close();
+		}
+
 	}
 
 	protected void initVariables() {
@@ -744,9 +781,6 @@ public class LDA {
 		for (int topic = 0; topic < param.numTopics; topic++) {
 			topics[topic] = new LDATopic(param.numVocab);
 		}
-		topicCodocumentFrequencyMatrix = new int[param.numTopics][param.numTopWords][param.numTopWords];
-		topicDocumentFrequencyMatrix = new int[param.numTopics][param.numTopWords];
-		topicCoherence = new double[param.numTopics];
 
 	}
 
@@ -766,9 +800,8 @@ public class LDA {
 
 	/**
 	 * Initialize an LDA object for training
-	 * 
-	 * @param parameters
-	 *            Parameters
+	 *
+	 * @param parameters Parameters
 	 */
 	public LDA(LDAParam parameters) {
 		this.type = TRAIN;
@@ -782,11 +815,9 @@ public class LDA {
 
 	/**
 	 * Initialize an LDA object for test using a pre-trained LDA object
-	 * 
-	 * @param LDATrain
-	 *            Pre-trained LDA object
-	 * @param parameters
-	 *            Parameters
+	 *
+	 * @param LDATrain   Pre-trained LDA object
+	 * @param parameters Parameters
 	 */
 	public LDA(LDA LDATrain, LDAParam parameters) {
 		this.type = TEST;
@@ -797,13 +828,10 @@ public class LDA {
 
 	/**
 	 * Initialize an LDA object for test using a pre-trained LDA model in file
-	 * 
-	 * @param modelFileName
-	 *            Model file name
-	 * @param parameters
-	 *            Parameters
-	 * @throws IOException
-	 *             IOException
+	 *
+	 * @param modelFileName Model file name
+	 * @param parameters    Parameters
+	 * @throws IOException IOException
 	 */
 	public LDA(String modelFileName, LDAParam parameters) throws IOException {
 		LDA LDATrain = gson.fromJson(new FileReader(modelFileName), this.getClass());
@@ -819,7 +847,7 @@ public class LDA {
 		LDA LDATrain = new LDA(parameters);
 		LDATrain.readCorpus(LDACfg.sldaTrainCorpusFileName);
 		if (parameters.constrained)
-			LDATrain.readConstraints(LDACfg.sldaTrainConstraintsFileName);
+			LDATrain.readDocConstraints(LDACfg.sldaTrainConstraintsFileName);
 		LDATrain.initialize();
 		LDATrain.sample(LDACfg.numTrainIters);
 		// LDATrain.writeModel(LDACfg.getModelFileName(modelName));
@@ -828,17 +856,14 @@ public class LDA {
 		// LDA LDATest=new LDA(LDACfg.getModelFileName(modelName), parameters);
 		LDATest.readCorpus(LDACfg.sldaTestCorpusFileName);
 		if (parameters.constrained)
-			LDATest.readConstraints(LDACfg.sldaTestConstraintsFileName);
+			LDATest.readDocConstraints(LDACfg.sldaTestConstraintsFileName);
 		LDATest.initialize();
 		LDATest.sample(LDACfg.numTestIters);
 	}
 
 	public void writeCoherence(String coherenceFileName) throws IOException {
 		BufferedWriter bw = new BufferedWriter(new FileWriter(coherenceFileName, true));
-		bw.write(String.valueOf(topicCoherence[0]));
-		for(int i=1; i<param.numTopics; i++) {
-			bw.write(";" + topicCoherence[i]);
-		}
+
 		bw.newLine();
 		bw.close();
 	}

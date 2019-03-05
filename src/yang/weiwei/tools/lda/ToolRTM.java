@@ -16,20 +16,35 @@ public class ToolRTM extends ToolLDA {
 	protected String rtmTestGraphFileName = "";
 	protected String predFileName = "";
 	protected String regFileName = "";
+	
+	protected String plrFileName = "";
+	protected String hitsFileName = "";
+	protected String ndcgFileName = "";
+
+	protected String rtmTestEdgesFileName = "";
 
 	public void parseCommand(String[] args) {
 		super.parseCommand(args);
 
 		nu = getArg("--nu", args, 1.0);
 		directed = findArg("--directed", args, false);
-		PLRInterval = getArg("--plr-int", args, 20);
+
+		// PLRInterval = getArg("--plr-int", args, 20);
+
 		negEdge = findArg("--neg", args, false);
 		negEdgeRatio = getArg("--neg-ratio", args, 1.0);
 
 		rtmTrainGraphFileName = getArg("--rtm-train-graph", args);
 		rtmTestGraphFileName = getArg("--rtm-test-graph", args);
+
+		rtmTestEdgesFileName = getArg("--rtm-test-edges", args);
+
 		predFileName = getArg("--pred", args);
 		regFileName = getArg("--reg", args);
+		
+		plrFileName = getArg("--plr", args);
+		ndcgFileName = getArg("--ndcg", args);
+		hitsFileName = getArg("--hits", args);
 
 	}
 
@@ -80,11 +95,10 @@ public class ToolRTM extends ToolLDA {
 	}
 
 	public void execute() throws IOException {
-
-		if (!checkCommand()) {
-			printHelp();
-			return;
-		}
+		/*
+		 * if (!checkCommand()) { printHelp(); return; }
+		 * 
+		 */
 		LDAParam param = createParam();
 		RTM lda = null;
 		if (!test) {
@@ -92,9 +106,13 @@ public class ToolRTM extends ToolLDA {
 			lda.readCorpus(corpusFileName);
 			lda.readGraph(rtmTrainGraphFileName, RTM.TRAIN_GRAPH);
 			// lda.readGraph(rtmTestGraphFileName, RTM.TEST_GRAPH);
-			if (param.constrained)
-				lda.readConstraints(trainConstraintsFileName);
+			if (param.constrained) {
+				if (trainConstraintsFileName.length() > 0)
+					lda.readDocConstraints(trainConstraintsFileName);
+				if (trainVocabConstraintsFileName.length() > 0)
+					lda.readVocabConstraints(trainVocabConstraintsFileName);
 
+			}
 			lda.initialize();
 			if (burnin > 0)
 				lda.sample(numIters, burnin);
@@ -104,19 +122,32 @@ public class ToolRTM extends ToolLDA {
 		} else {
 			lda = new RTM(modelFileName, param);
 			lda.readCorpus(corpusFileName);
+			System.out.println("rtmTrainGraphFileName " + rtmTrainGraphFileName);
+			System.out.println("rtmTestGraphFileName " + rtmTestGraphFileName);
+
 			if (rtmTrainGraphFileName.length() > 0)
 				lda.readGraph(rtmTrainGraphFileName, RTM.TRAIN_GRAPH);
 			lda.readGraph(rtmTestGraphFileName, RTM.TEST_GRAPH);
 			if (param.constrained) {
 				if (trainConstraintsFileName.length() > 0)
-					lda.readConstraints(trainConstraintsFileName);
-				lda.readConstraints(testConstraintsFileName);
+					lda.readDocConstraints(trainConstraintsFileName);
+				if (testConstraintsFileName.length() > 0)
+					lda.readDocConstraints(testConstraintsFileName);
+
+				if (testVocabConstraintsFileName.length() > 0)
+					lda.readVocabConstraints(testVocabConstraintsFileName);
+
 			}
+			if (rtmTestEdgesFileName.length() > 0)
+				lda.readEdgeLists(rtmTestEdgesFileName);
+
 			lda.initialize();
 			if (burnin > 0)
 				lda.sample(numIters, burnin);
 			else
 				lda.sample(numIters);
+
+			lda.writeModel(modelTestFileName);
 		}
 		writeFiles(lda);
 	}
@@ -128,7 +159,13 @@ public class ToolRTM extends ToolLDA {
 			lda.writePred(predFileName);
 		if (regFileName.length() > 0)
 			lda.writeRegValues(regFileName);
-
+		if (plrFileName.length() > 0)
+			// lda.writePLR(plrFileName);
+			lda.writePlrValues(plrFileName);
+		if (hitsFileName.length() > 0)
+			lda.writeHitsValues(hitsFileName);
+		if (ndcgFileName.length() > 0)
+			lda.writeNdcgValues(ndcgFileName);
 	}
 
 	public void printHelp() {

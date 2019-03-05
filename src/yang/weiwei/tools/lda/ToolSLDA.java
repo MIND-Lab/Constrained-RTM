@@ -85,6 +85,8 @@ public class ToolSLDA extends ToolLDA
 			if (labelFileName.length()>0) lda.readLabels(labelFileName);
 			lda.initialize();
 			lda.sample(numIters);
+			lda.writeModel(modelTestFileName);
+
 		}
 		writeFiles(lda);
 	}

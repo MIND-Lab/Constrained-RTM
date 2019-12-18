@@ -1,6 +1,6 @@
 # <h1 id="top">Constrained Relational Topic Models</h1>
 Implementation of Constrained Relational Topic Models (C-RTM), proposed in the paper "Constrained Relational Topic Models" <a href="https://doi.org/10.1016/j.ins.2019.09.039">[https://doi.org/10.1016/j.ins.2019.09.039]</a> accepted in Information Sciences, 2020.
-CRTM is a family of topic models that extend the well-know Relational Topic Models (Chang, 2009). It models the structure of a document network and incorporates other types of relational information obtained by prior domain knowledge. This implementation extends the code from the package of ([Weiwei Yang](http://cs.umd.edu/~wwyang/)'s). 
+CRTM is a family of topic models that extend the well-know [Relational Topic Models (Chang, 2009)](#rtm). It models the structure of a document network and incorporates other types of relational information obtained by prior domain knowledge. This implementation extends the code from the package of ([Weiwei Yang](http://cs.umd.edu/~wwyang/)'s). 
 
 
 ## <h2 id="clda">Execution of the program in Command Line</h2>

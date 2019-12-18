@@ -49,7 +49,7 @@ java -cp YWWTools.jar:deps.jar yang.weiwei.Tools --tool lda --model lda --constr
 Three benchmark relational [datasets](http://www.cs.umd.edu/~sen/lbc-proj/LBC.html) are included in their related folders. They are already preprocessed and ready to be used as input for the model. 
 Notice that the file `labels.txt` can be used to create the must- and cannot-constraints. Two random documents can be extracted and if their labels are the same, a must-constraint may be added to the `<constraint-file>`, otherwise a cannot-constraint may be added.
 
-<h2 id="references">[References](#references)
+## <h2 id="references">[References](#references) </h2>
 ### <h3 id="sclda">[SC-LDA](#sclda): Sparse Constrained LDA </h3>
 
 Yang, Y., Downey, D., Boyd-Graber, J.: Efficient Methods for Incorporating Knowledge into Topic Models. In: Proceedings of the 2015 Conference on Empirical Methods in Natural Language Processing (EMNLP). pp. 308-317 (2015)

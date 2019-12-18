@@ -1,7 +1,7 @@
 # <h1 id="top">Constrained Relational Topic Models</h1>
+Implementation of Constrained Relational Topic Models (C-RTM), proposed in the paper "Constrained Relational Topic Models" <a href="https://doi.org/10.1016/j.ins.2019.09.039">[https://doi.org/10.1016/j.ins.2019.09.039]</a> accepted in Information Sciences, 2020.
+CRTM is a family of topic models that extend the well-know Relational Topic Models (Chang, 2009). It models the structure of a document network and incorporates other types of relational information obtained by prior domain knowledge. This implementation extends the code from the package of ([Weiwei Yang](http://cs.umd.edu/~wwyang/)'s). 
 
-This is an extension of Relational Topic Models, called Constrained Relational Topic Models (C-RTM). It extends the code from the package of ([Weiwei Yang](http://cs.umd.edu/~wwyang/)'s). 
-C-RTM models the structure of a document network and incorporates other types of relational information obtained by prior domain knowledge.
 
 ## <h2 id="clda">Execution of the program in Command Line</h2>
 ```
@@ -49,9 +49,13 @@ java -cp YWWTools.jar:deps.jar yang.weiwei.Tools --tool lda --model lda --constr
 Three benchmark relational [datasets](http://www.cs.umd.edu/~sen/lbc-proj/LBC.html) are included in their related folders. They are already preprocessed and ready to be used as input for the model. 
 Notice that the file `labels.txt` can be used to create the must- and cannot-constraints. Two random documents can be extracted and if their labels are the same, a must-constraint may be added to the `<constraint-file>`, otherwise a cannot-constraint may be added.
 
-
+<h2 id="references">[References](#references)
 ### <h3 id="sclda">[SC-LDA](#sclda): Sparse Constrained LDA
 
 Yang, Y., Downey, D., Boyd-Graber, J.: Efficient Methods for Incorporating Knowledge into Topic Models. In: Proceedings of the 2015 Conference on Empirical Methods in Natural Language Processing (EMNLP). pp. 308-317 (2015)
+
+### <h3 id="rtm">[RTM](#rtm): Relational Topic Models
+
+Jonathan Chang, David M. Blei: Relational Topic Models for Document Networks. In: Proceedings of the Twelfth International Conference on Artificial Intelligence and Statistics (AISTATS) 2009: 81-88
 
 [Back to Top](#top)

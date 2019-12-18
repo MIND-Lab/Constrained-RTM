@@ -45,16 +45,16 @@ java -cp YWWTools.jar:deps.jar yang.weiwei.Tools --tool lda --model lda --constr
 	- `--top-word <num-top-word>`: Number of words to give when showing topics (default: 10). Must be a positive integer.
   - `--burn-in <burnin>`: Number of burn-in iterations. Default: 0.
 
-## <h2 id="datasets">Dasets</h2>
+## <h2 id="datasets">Datasets</h2>
 Three benchmark relational [datasets](http://www.cs.umd.edu/~sen/lbc-proj/LBC.html) are included in their related folders. They are already preprocessed and ready to be used as input for the model. 
 Notice that the file `labels.txt` can be used to create the must- and cannot-constraints. Two random documents can be extracted and if their labels are the same, a must-constraint may be added to the `<constraint-file>`, otherwise a cannot-constraint may be added.
 
 <h2 id="references">[References](#references)
-### <h3 id="sclda">[SC-LDA](#sclda): Sparse Constrained LDA
+### <h3 id="sclda">[SC-LDA](#sclda): Sparse Constrained LDA </h3>
 
 Yang, Y., Downey, D., Boyd-Graber, J.: Efficient Methods for Incorporating Knowledge into Topic Models. In: Proceedings of the 2015 Conference on Empirical Methods in Natural Language Processing (EMNLP). pp. 308-317 (2015)
 
-### <h3 id="rtm">[RTM](#rtm): Relational Topic Models
+### <h3 id="rtm">[RTM](#rtm): Relational Topic Models </h3>
 
 Jonathan Chang, David M. Blei: Relational Topic Models for Document Networks. In: Proceedings of the Twelfth International Conference on Artificial Intelligence and Statistics (AISTATS) 2009: 81-88
 
